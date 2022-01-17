@@ -1,6 +1,6 @@
 # VisitCordovaIOS
 
-VisitCordovaIOS is a plugin that can read the Gender, Steps, Distance and Sleep Data from Apple HealthKit and inject it into our PWA.
+A plugin that can read the Gender, Steps, Distance and Sleep Data from Apple HealthKit and inject it into our PWA.
 
 ## Installation
 
