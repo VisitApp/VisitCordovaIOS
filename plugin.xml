@@ -1,0 +1,53 @@
+<?xml version='1.0' encoding='utf-8'?>
+<plugin id="info.plugin.fitness" version="1.0.0"
+    xmlns="http://apache.org/cordova/ns/plugins/1.0"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+    <name>CordovaFitnessPlugin</name>
+    <js-module name="CordovaFitnessPlugin" src="www/CordovaFitnessPlugin.js">
+        <clobbers target="cordova.plugins.CordovaFitnessPlugin" />
+    </js-module>
+    <platform name="android">
+        <config-file parent="/*" target="res/xml/config.xml">
+            <feature name="CordovaFitnessPlugin">
+                <param name="android-package" value="info.plugin.fitness.CordovaFitnessPlugin" />
+                <param name="onload" value="true" />
+            </feature>
+        </config-file>
+        <config-file parent="/*" target="AndroidManifest.xml" />
+        <source-file src="src/android/CordovaFitnessPlugin.java" target-dir="src/info/android/plugin/fitness/CordovaFitnessPlugin" />
+    </platform>
+    <platform name="ios">
+        <config-file parent="/*" target="config.xml">
+            <feature name="CordovaFitnessPlugin">
+                <param name="ios-package" value="CordovaFitnessPlugin" />
+            </feature>
+        </config-file>
+        <source-file src="src/ios/CordovaFitnessPlugin.m" />
+        <resource-file src="src/ios/Loader.storyboard"/>
+        <resource-file src="src/ios/star_health_logo.png"/>
+        <!-- Usage description of Health, mandatory since iOS 10 -->
+        <preference name="HEALTH_READ_PERMISSION" default=" " />
+        <preference name="HEALTH_WRITE_PERMISSION" default=" " />
+        <config-file target="*-Info.plist" parent="NSHealthShareUsageDescription" mode="replace">
+            <string>App would like to access some of your health data.</string>
+        </config-file>
+
+        <config-file target="*-Info.plist" parent="NSHealthUpdateUsageDescription" mode="replace">
+            <string>App would like to access some of your health data.</string>
+        </config-file>
+
+        <config-file target="*-Info.plist" parent="NSLocationWhenInUseUsageDescription" mode="replace">
+            <string>App would like to know your location.</string>
+        </config-file>
+
+        <config-file target="*/Entitlements-Debug.plist" parent="com.apple.developer.healthkit">
+            <true/>
+        </config-file>
+
+        <config-file target="*/Entitlements-Release.plist" parent="com.apple.developer.healthkit">
+            <true/>
+        </config-file>
+
+        <framework src="HealthKit.framework" weak="false" />
+    </platform>
+</plugin>
