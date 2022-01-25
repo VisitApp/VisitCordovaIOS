@@ -1,22 +1,33 @@
-package info.plugin.fitness;
+package info.android.plugin.fitness;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.os.Build;
 import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.webkit.DownloadListener;
+import android.webkit.URLUtil;
 import android.webkit.WebView;
+import android.widget.FrameLayout;
 
 import com.getvisitapp.google_fit.data.GoogleFitStatusListener;
 import com.getvisitapp.google_fit.data.GoogleFitUtil;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
+import org.apache.cordova.engine.SystemWebViewClient;
+import org.apache.cordova.engine.SystemWebViewEngine;
 import org.json.JSONArray;
 import org.json.JSONException;
 
 import java.util.HashMap;
+
+import io.cordova.fitnessappcordova.R;
 
 /**
  * This class echoes a string called from JavaScript.
@@ -112,6 +123,16 @@ public class CordovaFitnessPlugin extends CordovaPlugin implements GoogleFitStat
                     googleFitUtil.init();
 
                     webView.showWebPage(magicLink, false, false, new HashMap<>());
+
+                    mWebView.setDownloadListener(new DownloadListener() {
+                        @Override
+                        public void onDownloadStart(String url, String userAgent, String contentDisposition, String mimeType, long contentLength) {
+                            Log.d("mytag", "downloadUrl:" + url + ",userAgent:" + userAgent + ",contentDisposition:" + contentDisposition + ",mimeType:" + mimeType + ",contentLength:" + contentLength);
+
+                            webView.showWebPage(url, true, false, new HashMap<>());
+
+                        }
+                    });
 
                 }
             });
@@ -249,6 +270,22 @@ public class CordovaFitnessPlugin extends CordovaPlugin implements GoogleFitStat
         if (!cordova.hasPermission(LOCATION_PERMISSION)) {
             cordova.requestPermissions(this, LOCATION_PERMISSION_REQUEST_CODE, new String[]{LOCATION_PERMISSION});
         }
+    }
+
+    @Override
+    public void closeVisitPWA() {
+        Log.d(TAG,"closeVisitPWA() called");
+        activity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                PackageManager packageManager = activity.getPackageManager();
+                Intent intent = packageManager.getLaunchIntentForPackage(activity.getPackageName());
+                ComponentName componentName = intent.getComponent();
+                Intent mainIntent = Intent.makeRestartActivityTask(componentName);
+                activity.startActivity(mainIntent);
+                Runtime.getRuntime().exit(0);
+            }
+        });
     }
 
 
