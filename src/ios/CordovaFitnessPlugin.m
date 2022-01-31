@@ -1044,54 +1044,56 @@ API_AVAILABLE(ios(13.0))
                 [self fetchSleepPattern:date frequency:frequency days:0 callback:^(NSArray * results) {
                     NSMutableArray *data = [[NSMutableArray alloc]init];
                     NSLog(@"weekly sleep results, %@", results);
-                    for (NSDictionary* item in results) {
-                        NSString* sleepValue = [item valueForKey:@"value"];
-                        if([sleepValue isEqualToString:@"INBED"]||[sleepValue isEqualToString:@"ASLEEP"]){
-                            NSDate* startDate = [item valueForKey:@"startDate"];
-                            NSDate* endDate = [item valueForKey:@"endDate"];
-                            NSTimeInterval interval;
-                            NSNumber* sleepTime =
-                            [NSNumber numberWithDouble: [@(floor([startDate timeIntervalSince1970] * 1000)) longLongValue]];
-                            NSNumber* wakeupTime =
-                            [NSNumber numberWithDouble: [@(floor([endDate timeIntervalSince1970] * 1000)) longLongValue]];
-                            NSLog(@"startDate before calendar function ,%@",startDate);
-                            [self->calendar rangeOfUnit:NSCalendarUnitDay
-                                               startDate:&startDate
-                                                interval:&interval
-                                                 forDate:endDate];
-                            NSLog(@"startDate after calendar function ,%@",startDate);
-                            NSNumber* startTimestamp =
-                            [NSNumber numberWithDouble: [@(floor([startDate timeIntervalSince1970] * 1000)) longLongValue]];
-                            NSDateComponents * dateComponents = [self->calendar components: NSCalendarUnitDay | NSCalendarUnitWeekday fromDate: endDate];
-                            NSString* day =self->calendar.shortWeekdaySymbols[dateComponents.weekday - 1];
-                            NSLog(@"Day name: %@", day);
-                            NSDictionary *element = @{
-                                    @"sleepTime" : sleepTime,
-                                    @"wakeupTime" : wakeupTime,
-                                    @"day" : day,
-                                    @"startTimestamp" : startTimestamp,
-                            };
-                            NSMutableDictionary *elem = [NSMutableDictionary dictionaryWithDictionary:element];
+                    if([results count]){
+                        for (NSDictionary* item in results) {
+                            NSString* sleepValue = [item valueForKey:@"value"];
+                            if([sleepValue isEqualToString:@"INBED"]||[sleepValue isEqualToString:@"ASLEEP"]){
+                                NSDate* startDate = [item valueForKey:@"startDate"];
+                                NSDate* endDate = [item valueForKey:@"endDate"];
+                                NSTimeInterval interval;
+                                NSNumber* sleepTime =
+                                [NSNumber numberWithDouble: [@(floor([startDate timeIntervalSince1970] * 1000)) longLongValue]];
+                                NSNumber* wakeupTime =
+                                [NSNumber numberWithDouble: [@(floor([endDate timeIntervalSince1970] * 1000)) longLongValue]];
+                                NSLog(@"startDate before calendar function ,%@",startDate);
+                                [self->calendar rangeOfUnit:NSCalendarUnitDay
+                                                   startDate:&startDate
+                                                    interval:&interval
+                                                     forDate:endDate];
+                                NSLog(@"startDate after calendar function ,%@",startDate);
+                                NSNumber* startTimestamp =
+                                [NSNumber numberWithDouble: [@(floor([startDate timeIntervalSince1970] * 1000)) longLongValue]];
+                                NSDateComponents * dateComponents = [self->calendar components: NSCalendarUnitDay | NSCalendarUnitWeekday fromDate: endDate];
+                                NSString* day =self->calendar.shortWeekdaySymbols[dateComponents.weekday - 1];
+                                NSLog(@"Day name: %@", day);
+                                NSDictionary *element = @{
+                                        @"sleepTime" : sleepTime,
+                                        @"wakeupTime" : wakeupTime,
+                                        @"day" : day,
+                                        @"startTimestamp" : startTimestamp,
+                                };
+                                NSMutableDictionary *elem = [NSMutableDictionary dictionaryWithDictionary:element];
 
-                            NSLog(@"data is, ====>> %@",data);
-                            if([data count]>0){
-                                for (int i=0;i<[data count]; i++) {
-                                    NSMutableDictionary* item = [data objectAtIndex:i];
-                                    NSString* itemDay = [item objectForKey:@"day"];
-                                    NSString* itemSleepTime = [item objectForKey:@"sleepTime"];
-                                    if([itemDay isEqualToString:day]){
-                                        [elem setValue:itemSleepTime forKey:@"sleepTime"];
-                                        [data removeObjectAtIndex:i];
-                                        NSLog(@"removed day is, ====>> %@",itemDay);
+                                NSLog(@"data is, ====>> %@",data);
+                                if([data count]>0){
+                                    for (int i=0;i<[data count]; i++) {
+                                        NSMutableDictionary* item = [data objectAtIndex:i];
+                                        NSString* itemDay = [item objectForKey:@"day"];
+                                        NSString* itemSleepTime = [item objectForKey:@"sleepTime"];
+                                        if([itemDay isEqualToString:day]){
+                                            [elem setValue:itemSleepTime forKey:@"sleepTime"];
+                                            [data removeObjectAtIndex:i];
+                                            NSLog(@"removed day is, ====>> %@",itemDay);
+                                        }
                                     }
+                                    [data addObject:elem];
+                                }else{
+                                    [data addObject:elem];
                                 }
-                                [data addObject:elem];
-                            }else{
-                                [data addObject:elem];
                             }
                         }
                     }
-                    if([data count]<7){
+                    if([data count]<7 && [data count]>0){
                         NSMutableDictionary* item = [data objectAtIndex:[data count]-1];
                         NSNumber* startTimeStamp = [item objectForKey:@"startTimestamp"];
                         NSTimeInterval unixTimeStamp = [startTimeStamp doubleValue] / 1000.0;
@@ -1172,26 +1174,26 @@ API_AVAILABLE(ios(13.0))
     __block NSArray* distanceData;
     __block NSArray* activityData;
     __block NSArray* sleep;
-    NSLog(@"days are %ld",(long)days);
+//    NSLog(@"days are %ld",(long)days);
     for (int i = 0; i<4; i++) {
         dispatch_group_enter(syncDataGroup);
         if(i==0){
             [self fetchSteps:@"custom" endDate:[NSDate date] days:days callback:^(NSArray * data) {
-                NSLog(@"steps data for custom range is, %@",[data objectAtIndex:0]);
+                NSLog(@"steps data for custom range is, %@ length %lu",[data objectAtIndex:0],[[data objectAtIndex:0] count]);
                 steps = [data objectAtIndex:0];
                 calorie = [data objectAtIndex:1];
                 dispatch_group_leave(syncDataGroup);
             }];
         }else if(i==1){
             [self fetchDistanceWalkingRunning:@"custom" endDate:[NSDate date] days:days callback:^(NSArray * distance) {
-                NSLog(@"distance data for custom range is, %@",distance);
+                NSLog(@"distance data for custom range is, %@ length %lu",distance, [distance count]);
                 distanceData=distance;
                 dispatch_group_leave(syncDataGroup);
             }];
         }else if(i==2){
             [self getActivityTime:[NSDate date] frequency:@"custom" days:days callback:^(NSMutableArray * activity) {
                 NSMutableArray* arr = [activity objectAtIndex:1];
-                NSLog(@"activity data for custom range is, %@",activity);
+                NSLog(@"activity data for custom range is, %@ length %lu",activity, [arr count]);
                 activityData = arr;
                 dispatch_group_leave(syncDataGroup);
             }];
@@ -1208,12 +1210,12 @@ API_AVAILABLE(ios(13.0))
                         [NSNumber numberWithDouble: [@(floor([startDate timeIntervalSince1970] * 1000)) longLongValue]];
                         NSNumber* wakeupTime =
                         [NSNumber numberWithDouble: [@(floor([endDate timeIntervalSince1970] * 1000)) longLongValue]];
-                        NSLog(@"startDate before calendar function ,%@",startDate);
+//                        NSLog(@"startDate before calendar function ,%@",startDate);
                         [self->calendar rangeOfUnit:NSCalendarUnitDay
                                            startDate:&startDate
                                             interval:&interval
                                              forDate:endDate];
-                        NSLog(@"startDate after calendar function ,%@",startDate);
+//                        NSLog(@"startDate after calendar function ,%@",startDate);
                         NSNumber* startTimestamp =
                         [NSNumber numberWithDouble: [@(floor([startDate timeIntervalSince1970] * 1000)) longLongValue]];
                         NSDictionary *element = @{
@@ -1232,7 +1234,7 @@ API_AVAILABLE(ios(13.0))
                                 if([[NSCalendar currentCalendar] isDate:itemEndDate inSameDayAsDate:endDate]){
                                     [elem setValue:itemSleepTime forKey:@"sleepTime"];
                                     [data removeObjectAtIndex:i];
-                                    NSLog(@"removed date is, ====>> %@",endDate);
+//                                    NSLog(@"removed date is, ====>> %@",endDate);
                                 }
                             }
                             [data addObject:elem];
@@ -1247,17 +1249,18 @@ API_AVAILABLE(ios(13.0))
             }];
         }
     }
+//    NSLog(@"callSyncData steps=%@, calories=%@, distance=%@, activity=%@, sleep=%@",steps, calorie, distanceData, activityData, sleep);
+
     dispatch_group_notify(syncDataGroup,dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),^{
-        if([steps count]>0 && [distanceData count]>0 && [activityData count]>0 && [sleep count]>0)
+    if([steps count]>0 && [distanceData count]>0 && [activityData count]>0 && [sleep count]>0)
        {
-        NSMutableArray* dailySyncData =[NSMutableArray new];
+           NSMutableArray* dailySyncData =[NSMutableArray new];
         int count = 0;
         for (NSDate* date in dates) {
             NSDictionary* dict = @{
                 @"steps":[steps objectAtIndex:count],
                 @"calories":[calorie objectAtIndex:count],
                 @"distance":[distanceData objectAtIndex:count],
-                @"activity":[[activityData objectAtIndex:count] valueForKey:@"value"],
                 @"date":date
             };
             [dailySyncData addObject:[NSMutableDictionary dictionaryWithDictionary:dict]];
@@ -1272,6 +1275,13 @@ API_AVAILABLE(ios(13.0))
                 }
             }
             
+            for(NSMutableDictionary* activity in activityData){
+                if([[NSCalendar currentCalendar] isDate:[activity objectForKey:@"date"] inSameDayAsDate:[dict objectForKey:@"date"]]){
+                    NSString* activityValue = [activity objectForKey:@"value"];
+                    [dict setObject:activityValue forKey:@"activity"];
+                }
+            }
+            
             [dict setObject: [NSNumber numberWithDouble: [@(floor([[dict objectForKey:@"date"] timeIntervalSince1970] * 1000)) longLongValue]]
               forKey:@"date"];
         }
@@ -1279,7 +1289,8 @@ API_AVAILABLE(ios(13.0))
                 @"fitnessData" : dailySyncData,
         };
         [self PostJson:@"users/data-sync" body:httpBody];
-        // NSLog(@"dailySyncData is, %@",dailySyncData);
+//        NSLog(@"dailySyncData is, %@",dailySyncData);
+           
        }
     });
 }
