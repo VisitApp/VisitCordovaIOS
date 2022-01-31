@@ -16,6 +16,11 @@ API_AVAILABLE(ios(13.0))
     UIStoryboard* storyboard;
     UIViewController * viewController;
     UIActivityIndicatorView *activityIndicator;
+    NSString *token;
+    NSTimeInterval gfHourlyLastSync;
+    NSTimeInterval googleFitLastSync;
+    HKHealthStore *healthStore;
+    UIViewController * storyboardVC;
     BOOL hasLoadedOnce;
 }
 @property (nonatomic, retain) HKHealthStore *healthStore;
@@ -85,7 +90,7 @@ API_AVAILABLE(ios(13.0))
                            [HKSampleType characteristicTypeForIdentifier:HKCharacteristicTypeIdentifierBiologicalSex],
                            [HKSampleType quantityTypeForIdentifier:HKQuantityTypeIdentifierDistanceWalkingRunning]];
     
-    [[VisitIosHealthController sharedManager] requestAuthorizationToShareTypes:[NSSet setWithArray:writeTypes] readTypes:[NSSet setWithArray:readTypes]
+    [[CordovaFitnessPlugin sharedManager] requestAuthorizationToShareTypes:[NSSet setWithArray:writeTypes] readTypes:[NSSet setWithArray:readTypes]
                                                                 completion:^(BOOL success, NSError *error) {
         NSLog(@"requestAuthorizationToShareTypes executed");
         [self canAccessHealthKit:^(BOOL value){
@@ -386,7 +391,7 @@ API_AVAILABLE(ios(13.0))
             NSLog(@"fetchDistanceWalkingRunning is,%@",data);
         };
         
-        [[VisitIosHealthController sharedManager] executeQuery:query];
+        [[CordovaFitnessPlugin sharedManager] executeQuery:query];
 }
 
 -(void) fetchSleepPattern:(NSDate *) endDate frequency:(NSString*) frequency days:(NSInteger) days callback:(void(^)(NSArray*))callback{
@@ -501,7 +506,7 @@ API_AVAILABLE(ios(13.0))
                                                      sortDescriptors:@[timeSortDescriptor]
                                                       resultsHandler:handlerBlock];
 
-    [[VisitIosHealthController sharedManager] executeQuery:query];
+    [[CordovaFitnessPlugin sharedManager] executeQuery:query];
 }
 
 
