@@ -14,13 +14,14 @@ API_AVAILABLE(ios(13.0))
     NSString *gender;
     NSUInteger bmrCaloriesPerHour;
     UIStoryboard* storyboard;
-    UIViewController * viewController;
+    UIViewController * sbViewController;
     UIActivityIndicatorView *activityIndicator;
     NSString *token;
     NSTimeInterval gfHourlyLastSync;
     NSTimeInterval googleFitLastSync;
     HKHealthStore *healthStore;
     UIViewController * storyboardVC;
+    NSString* callbackId;
     BOOL hasLoadedOnce;
 }
 @property (nonatomic, retain) HKHealthStore *healthStore;
@@ -831,15 +832,15 @@ API_AVAILABLE(ios(13.0))
 
 -(void) pluginInitialize {
     storyboard = [UIStoryboard storyboardWithName:@"Loader" bundle:nil];
-    viewController = [storyboard instantiateInitialViewController];
-    viewController.modalPresentationStyle = 0;
+    sbViewController = [storyboard instantiateInitialViewController];
+    sbViewController.modalPresentationStyle = 0;
     activityIndicator = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleLarge];
-    activityIndicator.center = viewController.view.center;
+    activityIndicator.center = sbViewController.view.center;
     activityIndicator.color = UIColor.linkColor;
-    [viewController.view addSubview:activityIndicator];
+    [sbViewController.view addSubview:activityIndicator];
     [activityIndicator startAnimating];
-    [self.viewController presentViewController:viewController animated:false completion:nil];
-    
+    [self.viewController presentViewController:sbViewController animated:false completion:nil];
+
     WKWebViewConfiguration *config = [[WKWebViewConfiguration alloc] init];
     [config.userContentController
               addScriptMessageHandler:self name:@"visitIosView"];
@@ -854,7 +855,7 @@ API_AVAILABLE(ios(13.0))
 - (void)loadVisitWebUrl:(CDVInvokedUrlCommand*)command {
     CDVPluginResult *pluginResult = nil;
     baseUrl = [command.arguments objectAtIndex:0];
-    NSLog(@"loadVisitUrl is called %@",baseUrl);
+    callbackId = command.callbackId;
     NSString *authToken = [command.arguments objectAtIndex:2];
     NSString *userId = [command.arguments objectAtIndex:3];
     NSString *magicLink = [NSString stringWithFormat: @"%@star-health?token=%@&id=%@", baseUrl, authToken, userId];
@@ -1338,6 +1339,10 @@ API_AVAILABLE(ios(13.0))
                 [self requestAuthorization];
             }
         }];
+    }else if([methodName isEqualToString:@"closeView"]){
+        CDVPluginResult* pluginResult = nil;
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:@"restart app"];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:callbackId];
     }
 }
 
