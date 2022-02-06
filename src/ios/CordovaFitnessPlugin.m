@@ -28,7 +28,6 @@ API_AVAILABLE(ios(13.0))
 - (void)coolMethod:(CDVInvokedUrlCommand*)command;
 - (void)loadVisitWebUrl:(CDVInvokedUrlCommand*)command;
 - (void)canAccessHealthKit:(void(^)(BOOL))callback;
-- (void)fetchSteps:(NSString*) frequency endDate:(NSDate*) endDate callback:(void(^)(NSArray*))callback;
 + (HKHealthStore *)sharedManager;
 @end
 
@@ -184,7 +183,6 @@ API_AVAILABLE(ios(13.0))
         NSLog(@"the steps result is, %@",numberOfSteps);
         NSLog(@"total sleep time is %f",totalSleepTime);
         NSInteger sleepTime = totalSleepTime;
-        //        -[WKWebView loadRequest:] must be used from main thread only
         if(!self->hasLoadedOnce){
             NSString *javascript = [NSString stringWithFormat:@"updateFitnessPermissions(true,'%@','%ld')",numberOfSteps, sleepTime];
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -821,7 +819,7 @@ API_AVAILABLE(ios(13.0))
         NSLog(@"%f", webView.estimatedProgress);
         // estimatedProgress is a value from 0.0 to 1.0
         // Update your UI here accordingly
-        if(webView.estimatedProgress>0.7){
+        if(webView.estimatedProgress>0.99){
             [activityIndicator stopAnimating];
             [self.viewController dismissViewControllerAnimated:NO completion:^{
                 NSLog(@"Storyboard dismissed");
@@ -831,6 +829,15 @@ API_AVAILABLE(ios(13.0))
 }
 
 -(void) pluginInitialize {
+    
+    WKWebViewConfiguration *config = [[WKWebViewConfiguration alloc] init];
+    [config.userContentController
+              addScriptMessageHandler:self name:@"visitIosView"];
+    webView = [[WKWebView alloc] initWithFrame:self.viewController.view.frame configuration:config];
+    gender = @"Not Set";
+}
+
+- (void)loadVisitWebUrl:(CDVInvokedUrlCommand*)command {
     storyboard = [UIStoryboard storyboardWithName:@"Loader" bundle:nil];
     sbViewController = [storyboard instantiateInitialViewController];
     sbViewController.modalPresentationStyle = 0;
@@ -840,19 +847,12 @@ API_AVAILABLE(ios(13.0))
     [sbViewController.view addSubview:activityIndicator];
     [activityIndicator startAnimating];
     [self.viewController presentViewController:sbViewController animated:false completion:nil];
-
-    WKWebViewConfiguration *config = [[WKWebViewConfiguration alloc] init];
-    [config.userContentController
-              addScriptMessageHandler:self name:@"visitIosView"];
-    webView = [[WKWebView alloc] initWithFrame:self.viewController.view.frame configuration:config];
     [webView addObserver:self forKeyPath:NSStringFromSelector(@selector(estimatedProgress)) options:NSKeyValueObservingOptionNew context:NULL];
     calendar = [[NSCalendar alloc] initWithCalendarIdentifier:NSCalendarIdentifierISO8601];
     calendar.timeZone = [NSTimeZone timeZoneWithName:@"IST"];
-    gender = @"Not Set";
     [self.viewController.view addSubview:webView];
-}
-
-- (void)loadVisitWebUrl:(CDVInvokedUrlCommand*)command {
+    
+    
     CDVPluginResult *pluginResult = nil;
     baseUrl = [command.arguments objectAtIndex:0];
     callbackId = command.callbackId;
@@ -861,7 +861,9 @@ API_AVAILABLE(ios(13.0))
     NSString *magicLink = [NSString stringWithFormat: @"%@star-health?token=%@&id=%@", baseUrl, authToken, userId];
     NSURL *url = [NSURL URLWithString:magicLink];
     NSURLRequest* request = [NSURLRequest requestWithURL: url];
-    [webView loadRequest:request];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self->webView loadRequest:request];
+        });
     NSLog(@"Your request of loadVisitUrl is ===>>> %@", request);
 }
 
@@ -1303,19 +1305,23 @@ API_AVAILABLE(ios(13.0))
     NSString *methodName = [json valueForKey:@"method"];
     NSLog(@"new data is, %@",json);
     if([methodName isEqualToString:@"connectToGoogleFit"]) {
-        [self canAccessHealthKit:^(BOOL value){
-            if(value){
-                [self onHealthKitPermissionGranted];
-            }else{
-                [self requestAuthorization];
-            }
+        [self.commandDelegate runInBackground:^{
+            [self canAccessHealthKit:^(BOOL value){
+                if(value){
+                    [self onHealthKitPermissionGranted];
+                }else{
+                    [self requestAuthorization];
+                }
+            }];
         }];
     }else if([methodName isEqualToString:@"getDataToGenerateGraph"]){
         NSString *type = [json valueForKey:@"type"];
         NSString *frequency = [json valueForKey:@"frequency"];
         NSString *timestamp = [json valueForKey:@"timestamp"];
         NSDate *date = [self convertStringToDate:timestamp];
-        [self renderGraphData:type frequency:frequency date:date];
+        [self.commandDelegate runInBackground:^{
+            [self renderGraphData:type frequency:frequency date:date];
+        }];
     }else if([methodName isEqualToString:@"updateApiBaseUrl"]){
         baseUrl = [json valueForKey:@"apiBaseUrl"];
         token = [json valueForKey:@"authtoken"];
@@ -1323,26 +1329,55 @@ API_AVAILABLE(ios(13.0))
         NSTimeInterval googleFitLastSync = [[json valueForKey:@"googleFitLastSync"] doubleValue];
         NSDate* hourlyDataSyncTime = [NSDate dateWithTimeIntervalSince1970:gfHourlyLastSync/1000];
         NSDate* dailyDataSyncTime = [NSDate dateWithTimeIntervalSince1970:googleFitLastSync/1000];
-        [self canAccessHealthKit:^(BOOL value){
-            if(value){
-                [self getDateRanges:hourlyDataSyncTime callback:^(NSMutableArray * dates) {
-                    if([dates count]>0){
-                        [self callEmbellishApi:dates];
+        if(!hasLoadedOnce){
+            [self.commandDelegate runInBackground:^{
+                [self canAccessHealthKit:^(BOOL value){
+                    if(value){
+                        [self getDateRanges:hourlyDataSyncTime callback:^(NSMutableArray * dates) {
+                            if([dates count]>0){
+                                [self callEmbellishApi:dates];
+                            }
+                        }];
+                        [self getDateRanges:dailyDataSyncTime callback:^(NSMutableArray * dates) {
+                            if([dates count]>0){
+                                [self callSyncData:[dates count] dates:dates];
+                            }
+                        }];
+                    }else{
+                        [self requestAuthorization];
                     }
                 }];
-                [self getDateRanges:dailyDataSyncTime callback:^(NSMutableArray * dates) {
-                    if([dates count]>0){
-                        [self callSyncData:[dates count] dates:dates];
-                    }
-                }];
-            }else{
-                [self requestAuthorization];
-            }
-        }];
+            }];
+        }
     }else if([methodName isEqualToString:@"closeView"]){
         CDVPluginResult* pluginResult = nil;
         pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:@"restart app"];
-        [self.commandDelegate sendPluginResult:pluginResult callbackId:callbackId];
+        [self.viewController removeFromParentViewController];
+        [webView.configuration.userContentController removeAllUserScripts];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self->webView removeFromSuperview];
+            });
+        webView.navigationDelegate = nil;
+        webView.scrollView.delegate = nil;
+        [webView stopLoading];
+    }else if([methodName isEqualToString:@"openPDF"]){
+        NSString *link = [json valueForKey:@"url"];
+        NSURL *url = [NSURL URLWithString:link];
+        [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
+    }else if([methodName isEqualToString:@"mailTo"]){
+        NSString *link = [json valueForKey:@"url"];
+        NSString *email = [json valueForKey:@"email"];
+        NSString *subject = [json valueForKey:@"subject"];
+        NSString *mail = [NSString stringWithFormat: @"mailto:%@?subject=%@", email, subject];
+        mail = [mail stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
+        NSURL *url = [NSURL URLWithString:mail];
+        NSLog(@"url to be opened %@, %@", mail,url);
+        if([[UIApplication sharedApplication] canOpenURL:url]){
+            [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
+        }else{
+            NSLog(@"Cannot open url");
+        }
+        
     }
 }
 

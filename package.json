@@ -1,6 +1,6 @@
 {
   "name": "info.plugin.fitness",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "This is used to get Google Fit/Apple Health data.",
   "cordova": {
     "id": "info.plugin.fitness",
