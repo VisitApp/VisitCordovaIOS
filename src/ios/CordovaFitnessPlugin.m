@@ -693,6 +693,9 @@ API_AVAILABLE(ios(13.0))
         [component setDay:-30];
         startingDate =[calendar dateByAddingComponents:component toDate:endOfToday options:0];
         numberOfDays=30;
+    }else{
+        [component setDay:-numberOfDays-1];
+        startingDate =[calendar dateByAddingComponents:component toDate:endOfToday options:0];
     }
     NSLog(@"numberOfDays are ,%ld, while startingDate is,%@",(long)numberOfDays,startDate);
 
