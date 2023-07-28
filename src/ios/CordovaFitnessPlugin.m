@@ -861,7 +861,11 @@ API_AVAILABLE(ios(13.0))
     callbackId = command.callbackId;
     NSString *authToken = [command.arguments objectAtIndex:2];
     NSString *userId = [command.arguments objectAtIndex:3];
+    NSString *directMagicLink = [command.arguments objectAtIndex:4];
     NSString *magicLink = [NSString stringWithFormat: @"%@star-health?token=%@&id=%@", baseUrl, authToken, userId];
+    if([directMagicLink length] != 0){
+        magicLink = directMagicLink;
+    }
     NSURL *url = [NSURL URLWithString:magicLink];
     NSURLRequest* request = [NSURLRequest requestWithURL: url];
     dispatch_async(dispatch_get_main_queue(), ^{
