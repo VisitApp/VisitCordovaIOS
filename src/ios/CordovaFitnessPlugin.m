@@ -836,6 +836,7 @@ API_AVAILABLE(ios(13.0))
     WKWebViewConfiguration *config = [[WKWebViewConfiguration alloc] init];
     [config.userContentController
               addScriptMessageHandler:self name:@"visitIosView"];
+    config.allowsInlineMediaPlayback = true;
     webView = [[WKWebView alloc] initWithFrame:self.viewController.view.frame configuration:config];
     gender = @"Not Set";
 }
