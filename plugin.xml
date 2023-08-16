@@ -2,19 +2,41 @@
 <plugin id="info.plugin.fitness" version="1.0.0"
     xmlns="http://apache.org/cordova/ns/plugins/1.0"
     xmlns:android="http://schemas.android.com/apk/res/android">
+
     <name>CordovaFitnessPlugin</name>
-    <js-module name="CordovaFitnessPlugin" src="www/CordovaFitnessPlugin.js">
+
+    <js-module
+        name="CordovaFitnessPlugin"
+        src="www/CordovaFitnessPlugin.js">
+
         <clobbers target="cordova.plugins.CordovaFitnessPlugin" />
     </js-module>
+    
     <platform name="android">
-        <config-file parent="/*" target="res/xml/config.xml">
+        <config-file
+            parent="/*"
+            target="res/xml/config.xml">
+
             <feature name="CordovaFitnessPlugin">
-                <param name="android-package" value="info.plugin.fitness.CordovaFitnessPlugin" />
-                <param name="onload" value="true" />
+                <param
+                    name="android-package"
+                    value="info.plugin.CordovaFitnessPlugin" />
             </feature>
         </config-file>
-        <config-file parent="/*" target="AndroidManifest.xml" />
-        <source-file src="src/android/CordovaFitnessPlugin.java" target-dir="src/info/android/plugin/fitness/CordovaFitnessPlugin" />
+
+        
+
+        <config-file
+            parent="/*"
+            target="AndroidManifest.xml"></config-file>
+
+        <source-file
+            src="src/android/CordovaFitnessPlugin.java"
+            target-dir="src/info/plugin" />
+
+        <source-file
+            src="src/android/CordovaFitnessDialog.java"
+            target-dir="src/info/plugin" />
     </platform>
     <platform name="ios">
         <config-file parent="/*" target="config.xml">
